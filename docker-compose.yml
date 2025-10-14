@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # INI RANAH DATABASE
+  db:
+    image: postgres:14-alpine
+    container_name: minirestoo_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=minirestoo_user
+      - POSTGRES_PASSWORD=secretpassword
+      - POSTGRES_DB=minirestoo_db
+    ports:
+      - "5432:5432" 
+    volumes:
+      - minirestoo_db_data:/var/lib/postgresql/data
+    networks:
+      - minirestoo_network
+
+  # INI RANAH SERVICES 
+  product-management:
+    build:
+      context: ./product-management 
+    container_name: product_service
+    restart: unless-stopped
+    ports:
+      - "3002:3002" 
+    environment:
+      - PORT=3002
+      - DATABASE_URL=postgresql://minirestoo_user:secretpassword@db:5432/minirestoo_db
+    networks:
+      - minirestoo_network
+    depends_on:
+      - db
+
+# GUYS BAGIAN INI BUAT JARINGAN & VOLUME
+networks:
+  minirestoo_network:
+    driver: bridge
+
+volumes:
+  minirestoo_db_data:
