@@ -16,7 +16,6 @@ Setiap service memiliki **tanggung jawab tunggal** dan berjalan di dalam contain
 |  **inventory-management** | Mengelola stok bahan baku. |
 |  **product-management** | Mengelola data menu/produk yang dijual. |
 |  **operasional** | Mengelola proses bisnis inti seperti pesanan dan transaksi. |
-![ERD](https://drive.google.com/file/d/11ckp_jXTT0J_DfFr0z2hQoa9LibWQ6pP/view?usp=sharing)
 
 ---
 
