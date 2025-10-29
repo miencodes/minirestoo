@@ -10,12 +10,30 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL
 });
 
+// ges, ini fungsi biar service-nya sabar nungguin DB-nya panas
+const waitForDatabase = async () => {
+  let retries = 5;
+  while (retries > 0) {
+    try {
+      await pool.query('SELECT 1'); // Query simpel buat ngetes koneksi
+      console.log('✅ (Product) Database connection successful.');
+      return; // Kalo sukses, keluar dari loop
+    } catch (err) {
+      console.log(`⏳ (Product) DB connection failed (Code: ${err.code}). Retrying in 5 seconds... (${retries} attempts left)`);
+      retries--;
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Nunggu 5 detik
+    }
+  }
+  // Kalo 5x masih gagal, kita nyerah
+  throw new Error('Database connection failed after multiple attempts.');
+};
+
 // --- FUNGSI INISIALISASI DATABASE ---
 // ges, ini kita update buat nambahin tabel raw_materials dan recipes
 const initializeDatabase = async () => {
   const client = await pool.connect();
   try {
-    // 1. Tabel products (Udah ada, tapi kita pastikan lagi)
+    // 1. Tabel products (Udah ada sih, tapi kita pastikan lagi)
     await client.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -26,7 +44,7 @@ const initializeDatabase = async () => {
       );
     `);
     
-    // 2. Tabel raw_materials (BARU)
+    // 2. Tabel raw_materials
     // Ini buat nyimpen data bahan baku kita, misal Beras, Telur, dll.
     await client.query(`
       CREATE TABLE IF NOT EXISTS raw_materials (
@@ -37,7 +55,7 @@ const initializeDatabase = async () => {
       );
     `);
 
-    // 3. Tabel recipes (BARU)
+    // 3. Tabel recipes
     // Ini 'jembatan' antara products dan raw_materials.
     // PK-nya gabungan (product_id, material_id) biar 1 produk gabisa punya 2 bahan yg sama
     await client.query(`
@@ -59,7 +77,7 @@ const initializeDatabase = async () => {
 
 // --- APLIKASI EXPRESS ---
 const app = express();
-app.use(express.json()); // Middleware wajib buat baca body JSON
+app.use(express.json()); // Middlewarenya wajib buat baca body JSON
 
 // --- ROUTES ---
 
@@ -100,13 +118,13 @@ app.post('/api/products', async (req, res) => {
   }
 });
 
-// 3. GET (BARU): Mendapatkan detail produk + resepnya (SESUAI KONTRAK API)
-// Ini yang bakal dipake sama Developer C (Operasional)
+// 3. GET: Mendapatkan detail produk + resepnya (SESUAI KONTRAK API KITA)
+// Ini yang bakal dipake sama Developer Operasional tar
 app.get('/api/products/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Ini query-nya agak gahar, kita JOIN 3 tabel sekaligus
+    // Ini query buat kita JOIN 3 tabel sekaligus
     // buat ngambil data produk, resepnya, dan nama bahan bakunya
     const query = `
       SELECT
@@ -129,7 +147,7 @@ app.get('/api/products/:id', async (req, res) => {
     }
 
     // Oke, ges. Di sini kita perlu "ngubah" data dari database
-    // SQL ngasih kita data "flat" (datar), misal 2 baris kalo resepnya ada 2
+    // SQL ngasih kita data "flat", misal 2 baris kalo resepnya ada 2
     // Kita mau ubah jadi 1 objek JSON yg punya array 'recipes' di dalemnya
     
     // Ambil info produk dari baris pertama
@@ -138,7 +156,7 @@ app.get('/api/products/:id', async (req, res) => {
       name: rows[0].name,
       price: rows[0].price,
       description: rows[0].description,
-      recipes: [] // siapin array kosong buat resep
+      recipes: [] // ini array sengaja dibuat kosong buat resep tar
     };
 
     // Loop semua baris hasil query buat ngisi array resep
@@ -163,7 +181,7 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
-// 4. POST (BARU): Menambahkan resep ke produk
+// 4. POST: Menambahkan resep ke produk
 // Ini kita butuhin buat ngetes endpoint GET di atas
 app.post('/api/products/:id/recipes', async (req, res) => {
   const { id: product_id } = req.params;
@@ -248,7 +266,7 @@ app.put('/api/products/:id', async (req, res) => {
   }
 });
 
-// ges, ini buat ngehapus produk. Hati-hati ya, ini beneran kehapus
+// ges, ini buat ngehapus produk. Hati-hati ya, ini beneran kehapus :v
 app.delete('/api/products/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -281,7 +299,15 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // --- START SERVER ---
+// tabrakan, jdi buat "waitForDatabase" dulu
 app.listen(PORT, HOST, async () => {
-  await initializeDatabase(); // Jalankan inisialisasi DB sebelum server siap
-  console.log(`🚀 Product Management service running on http://${HOST}:${PORT}`);
+  try {
+    await waitForDatabase(); 
+    await initializeDatabase(); 
+    console.log(`🚀 Product Management service running on http://${HOST}:${PORT}`);
+  
+  } catch (err) {
+    console.error('Failed to start product service:', err.message);
+    process.exit(1); // klo gabisa nyambung DB, matiin aja servicenya
+  }
 });

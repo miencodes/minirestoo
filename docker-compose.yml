@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  # INI RANAH DATABASE
+  # --- DATABASE ---
   db:
     image: postgres:14-alpine
     container_name: minirestoo_db
@@ -17,14 +15,27 @@ services:
     networks:
       - minirestoo_network
 
-  # INI RANAH SERVICES 
-  product-management:
+  # --- API GATEWAY NGINX ---
+  nginx:
     build:
-      context: ./product-management 
-    container_name: product_service
+      context: ./nginx
+    container_name: api_gateway
     restart: unless-stopped
     ports:
-      - "3002:3002" 
+      - "80:80" # Ini ya, satu-satunya pintu masuk ke aplikasi kita
+    networks:
+      - minirestoo_network
+    depends_on:
+      - product-management
+      - inventory-management
+      - operasional
+
+  # --- SERVICE PRODUCT ---
+  product-management:
+    build:
+      context: ./product-management
+    container_name: product_service
+    restart: unless-stopped
     environment:
       - PORT=3002
       - DATABASE_URL=postgresql://minirestoo_user:secretpassword@db:5432/minirestoo_db
@@ -33,7 +44,52 @@ services:
     depends_on:
       - db
 
-# GUYS BAGIAN INI BUAT JARINGAN & VOLUME
+  # --- SERVICE INVENTORY ---
+  inventory-management:
+    build:
+      context: ./inventory-management
+    container_name: inventory_service
+    restart: unless-stopped
+    environment:
+      - PORT=3001
+      - DATABASE_URL=postgresql://minirestoo_user:secretpassword@db:5432/minirestoo_db
+    networks:
+      - minirestoo_network
+    depends_on:
+      - db
+
+  # --- SERVICE OPERASIONAL ---
+  operasional:
+    build:
+      context: ./operasional
+    container_name: operasional_service
+    restart: unless-stopped
+    environment:
+      - PORT=3003
+      - DATABASE_URL=postgresql://minirestoo_user:secretpassword@db:5432/minirestoo_db
+      - PRODUCT_SERVICE_URL=http://product-management:3002
+      - INVENTORY_SERVICE_URL=http://inventory-management:3001
+    networks:
+      - minirestoo_network
+    depends_on:
+      - db
+      - product-management
+      - inventory-management
+
+# --- FRONTEND ---
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend_app
+    restart: unless-stopped
+    ports:
+      - "3000:80" # port 3000 tuh di laptop kita
+    depends_on:
+      - nginx # frontend baru boleh nyala kalo nginx udah siap
+    networks:
+      - minirestoo_network
+
+# --- JARINGAN & VOLUME ---
 networks:
   minirestoo_network:
     driver: bridge
