@@ -167,7 +167,7 @@ Team:
 13. Implementasi Pembacaan Pesanan:
 14. Buat endpoint GET /api/orders dan GET /api/orders/:id untuk melihat riwayat pesanan.
 ---
-- Khris: inventory-management.
+- Danendra: inventory-management.
 1. Setup Awal Service:
 2. Buat struktur folder inventory-management (bisa mencontoh product-management).
 3. Buat Dockerfile dan aplikasi Express "Hello World" awal.
@@ -181,7 +181,7 @@ Team:
 11. Buat endpoint POST /api/inventory/stock-in untuk mencatat penambahan stok (misal: setelah belanja). Endpoint ini harus menambah quantity_on_hand di raw_materials DAN mencatat transaksi di stock_transactions dengan tipe in.
 12. Buat endpoint internal yang akan dipanggil oleh Service Operasional untuk mengurangi stok (ini akan menjadi tugas selanjutnya setelah dasarnya jadi).
 ---
-- Danen: Frontend
+- Khrisna: Frontend
 ---
 Ini adalah keputusan final untuk arsitektur, alur, dan API Contract proyek "minirestoo". Patuhi ini agar proyek berjalan lancar ya guys.
 -----
