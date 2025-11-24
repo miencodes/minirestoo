@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-// API Base URLs
-const PRODUCT_API = 'http://localhost:3001/api';
-const INVENTORY_API = 'http://localhost:3001/api';
-const OPERATIONAL_API = 'http://localhost:3002/api';
 
-// Format Rupiah
+const PRODUCT_API = 'http://localhost:3002/api';
+const INVENTORY_API = 'http://localhost:3001/api';
+const OPERATIONAL_API = 'http://localhost:3003/api';
+
 const formatRupiah = (number) => {
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
@@ -16,9 +15,6 @@ const formatRupiah = (number) => {
     }).format(number);
 };
 
-// ==========================================================
-// 🚀 KOMPONEN AUTHENTICATION
-// ==========================================================
 
 const Register = ({ switchToLogin }) => {
     const [registerForm, setRegisterForm] = useState({
