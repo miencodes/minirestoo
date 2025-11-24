@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-
 const PRODUCT_API = 'http://localhost:3002/api';
 const INVENTORY_API = 'http://localhost:3001/api';
 const OPERATIONAL_API = 'http://localhost:3003/api';
@@ -14,7 +13,6 @@ const formatRupiah = (number) => {
         minimumFractionDigits: 0
     }).format(number);
 };
-
 
 const Register = ({ switchToLogin }) => {
     const [registerForm, setRegisterForm] = useState({
@@ -153,7 +151,6 @@ const Login = ({ switchToRegister, onLogin }) => {
 
     const handleLogin = (e) => {
         e.preventDefault();
-        // Simulasi login - dalam aplikasi real akan panggil API
         if (loginForm.email && loginForm.password) {
             onLogin();
         } else {
@@ -215,17 +212,13 @@ const Login = ({ switchToRegister, onLogin }) => {
     );
 };
 
-// ==========================================================
-// 🏠 KOMPONEN UTAMA APLIKASI
-// ==========================================================
-
-const ProductManagement = ({ products, productForm, handleProductChange, addProduct, deleteProduct }) => (
+const ProductManagement = ({ products, productForm, handleProductChange, addProduct, editProduct, deleteProduct, isEditing, setIsEditing, cancelEdit }) => (
     <div className="management-section">
         <h2>📦 Menu Management</h2>
         
         <div className="form-section">
-            <h3>Tambah Menu Baru</h3>
-            <form onSubmit={addProduct}>
+            <h3>{isEditing ? '✏️ Edit Menu' : '➕ Tambah Menu Baru'}</h3>
+            <form onSubmit={isEditing ? editProduct : addProduct}>
                 <div className="form-group">
                     <div className="form-input">
                         <label>Nama Menu</label>
@@ -279,12 +272,21 @@ const ProductManagement = ({ products, productForm, handleProductChange, addProd
                         />
                     </div>
                 </div>
-                <button type="submit" className="btn btn-primary">Tambah Menu</button>
+                <div className="form-actions">
+                    <button type="submit" className="btn btn-primary">
+                        {isEditing ? '💾 Update Menu' : '➕ Tambah Menu'}
+                    </button>
+                    {isEditing && (
+                        <button type="button" className="btn btn-secondary" onClick={cancelEdit}>
+                            ❌ Batal Edit
+                        </button>
+                    )}
+                </div>
             </form>
         </div>
 
         <div className="table-section">
-            <h3>Daftar Menu</h3>
+            <h3>📋 Daftar Menu</h3>
             <div className="table-container">
                 <table>
                     <thead>
@@ -304,12 +306,20 @@ const ProductManagement = ({ products, productForm, handleProductChange, addProd
                                 <td>{product.category}</td>
                                 <td>{formatRupiah(product.price)}</td>
                                 <td>
-                                    <button 
-                                        className="btn btn-danger"
-                                        onClick={() => deleteProduct(product.id)}
-                                    >
-                                        Hapus
-                                    </button>
+                                    <div className="action-buttons">
+                                        <button 
+                                            className="btn btn-warning"
+                                            onClick={() => setIsEditing(product)}
+                                        >
+                                            ✏️ Edit
+                                        </button>
+                                        <button 
+                                            className="btn btn-danger"
+                                            onClick={() => deleteProduct(product.id)}
+                                        >
+                                            🗑️ Hapus
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -320,13 +330,13 @@ const ProductManagement = ({ products, productForm, handleProductChange, addProd
     </div>
 );
 
-const InventoryManagement = ({ products, inventory, inventoryForm, handleInventoryChange, updateStock }) => (
+const InventoryManagement = ({ products, inventory, inventoryForm, handleInventoryChange, updateStock, editInventory, deleteInventory, isEditingInventory, setIsEditingInventory, cancelEditInventory }) => (
     <div className="management-section">
         <h2>📊 Inventory Management</h2>
         
         <div className="form-section">
-            <h3>Update Stok Bahan</h3>
-            <form onSubmit={updateStock}>
+            <h3>{isEditingInventory ? '✏️ Edit Stok Bahan' : '📦 Update Stok Bahan'}</h3>
+            <form onSubmit={isEditingInventory ? editInventory : updateStock}>
                 <div className="form-group">
                     <div className="form-input">
                         <label>Pilih Menu</label>
@@ -335,6 +345,7 @@ const InventoryManagement = ({ products, inventory, inventoryForm, handleInvento
                             value={inventoryForm.product_id}
                             onChange={handleInventoryChange} 
                             required
+                            disabled={isEditingInventory}
                         >
                             <option value="">Pilih Menu</option>
                             {products.map(product => (
@@ -374,12 +385,21 @@ const InventoryManagement = ({ products, inventory, inventoryForm, handleInvento
                         </select>
                     </div>
                 </div>
-                <button type="submit" className="btn btn-primary">Update Stok</button>
+                <div className="form-actions">
+                    <button type="submit" className="btn btn-primary">
+                        {isEditingInventory ? '💾 Update Stok' : '📦 Tambah/Update Stok'}
+                    </button>
+                    {isEditingInventory && (
+                        <button type="button" className="btn btn-secondary" onClick={cancelEditInventory}>
+                            ❌ Batal Edit
+                        </button>
+                    )}
+                </div>
             </form>
         </div>
 
         <div className="table-section">
-            <h3>Stok Bahan Saat Ini</h3>
+            <h3>📋 Stok Bahan Saat Ini</h3>
             <div className="table-container">
                 <table>
                     <thead>
@@ -387,6 +407,7 @@ const InventoryManagement = ({ products, inventory, inventoryForm, handleInvento
                             <th>Menu</th>
                             <th>Stok</th>
                             <th>Lokasi</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -397,6 +418,22 @@ const InventoryManagement = ({ products, inventory, inventoryForm, handleInvento
                                     <td>{product ? product.name : 'Menu Tidak Ditemukan'}</td>
                                     <td>{item.stock} porsi</td>
                                     <td>{item.location}</td>
+                                    <td>
+                                        <div className="action-buttons">
+                                            <button 
+                                                className="btn btn-warning"
+                                                onClick={() => setIsEditingInventory(item)}
+                                            >
+                                                ✏️ Edit
+                                            </button>
+                                            <button 
+                                                className="btn btn-danger"
+                                                onClick={() => deleteInventory(item.product_id)}
+                                            >
+                                                🗑️ Hapus
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                             );
                         })}
@@ -407,7 +444,7 @@ const InventoryManagement = ({ products, inventory, inventoryForm, handleInvento
     </div>
 );
 
-const OperationalManagement = ({ operational, operationalForm, handleOperationalChange, addOperational, deleteOperational }) => {
+const OperationalManagement = ({ operational, operationalForm, handleOperationalChange, addOperational, editOperational, deleteOperational, isEditingOperational, setIsEditingOperational, cancelEditOperational }) => {
     const totalOperationalCost = operational.reduce((sum, op) => sum + op.cost, 0);
 
     return (
@@ -415,8 +452,8 @@ const OperationalManagement = ({ operational, operationalForm, handleOperational
             <h2>⚙️ Operational Management</h2>
             
             <div className="form-section">
-                <h3>Tambah Aktivitas Operasional</h3>
-                <form onSubmit={addOperational}>
+                <h3>{isEditingOperational ? '✏️ Edit Aktivitas Operasional' : '➕ Tambah Aktivitas Operasional'}</h3>
+                <form onSubmit={isEditingOperational ? editOperational : addOperational}>
                     <div className="form-group">
                         <div className="form-input">
                             <label>Tanggal</label>
@@ -465,12 +502,21 @@ const OperationalManagement = ({ operational, operationalForm, handleOperational
                             />
                         </div>
                     </div>
-                    <button type="submit" className="btn btn-primary">Tambah Aktivitas</button>
+                    <div className="form-actions">
+                        <button type="submit" className="btn btn-primary">
+                            {isEditingOperational ? '💾 Update Aktivitas' : '➕ Tambah Aktivitas'}
+                        </button>
+                        {isEditingOperational && (
+                            <button type="button" className="btn btn-secondary" onClick={cancelEditOperational}>
+                                ❌ Batal Edit
+                            </button>
+                        )}
+                    </div>
                 </form>
             </div>
 
             <div className="table-section">
-                <h3>Catatan Operasional</h3>
+                <h3>📋 Catatan Operasional</h3>
                 <div className="financial-summary">
                     <div className="financial-card total-cost">
                         <div className="financial-icon">💰</div>
@@ -500,12 +546,20 @@ const OperationalManagement = ({ operational, operationalForm, handleOperational
                                     <td>{op.description}</td>
                                     <td className="cost-cell">{formatRupiah(op.cost)}</td>
                                     <td>
-                                        <button 
-                                            className="btn btn-danger"
-                                            onClick={() => deleteOperational(op.id)}
-                                        >
-                                            Hapus
-                                        </button>
+                                        <div className="action-buttons">
+                                            <button 
+                                                className="btn btn-warning"
+                                                onClick={() => setIsEditingOperational(op)}
+                                            >
+                                                ✏️ Edit
+                                            </button>
+                                            <button 
+                                                className="btn btn-danger"
+                                                onClick={() => deleteOperational(op.id)}
+                                            >
+                                                🗑️ Hapus
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -526,7 +580,6 @@ const Dashboard = ({ stats, products, operational }) => {
         <div className="dashboard">
             <h2>📈 Dashboard Overview</h2>
             
-            {/* Financial Summary */}
             <div className="financial-overview">
                 <div className="financial-card revenue-card">
                     <div className="financial-icon">📊</div>
@@ -556,7 +609,6 @@ const Dashboard = ({ stats, products, operational }) => {
                 </div>
             </div>
 
-            {/* Stats Grid */}
             <div className="stats-grid">
                 <div className="stat-card">
                     <h3>Total Menu</h3>
@@ -575,7 +627,6 @@ const Dashboard = ({ stats, products, operational }) => {
                 </div>
             </div>
 
-            {/* Revenue Calculation Explanation */}
             <div className="revenue-calculation">
                 <h4>🧮 Detail Perhitungan Estimasi Pendapatan</h4>
                 <div className="calculation-steps">
@@ -636,12 +687,8 @@ const Dashboard = ({ stats, products, operational }) => {
     );
 };
 
-// ==========================================================
-// 🎯 KOMPONEN UTAMA APP
-// ==========================================================
-
 function App() {
-    const [currentView, setCurrentView] = useState('register'); // 'register', 'login', 'main'
+    const [currentView, setCurrentView] = useState('register');
     const [activeTab, setActiveTab] = useState('dashboard');
     const [products, setProducts] = useState([]);
     const [inventory, setInventory] = useState([]);
@@ -654,8 +701,8 @@ function App() {
         totalRevenue: 0
     });
 
-    // Form states
     const [productForm, setProductForm] = useState({
+        id: '',
         name: '',
         description: '',
         price: '',
@@ -667,13 +714,17 @@ function App() {
         location: 'Dapur Utama'
     });
     const [operationalForm, setOperationalForm] = useState({
+        id: '',
         date: new Date().toISOString().split('T')[0],
         activity: '',
         description: '',
         cost: ''
     });
 
-    // Auth Handlers
+    const [isEditing, setIsEditing] = useState(false);
+    const [isEditingInventory, setIsEditingInventory] = useState(false);
+    const [isEditingOperational, setIsEditingOperational] = useState(false);
+
     const switchToLogin = () => setCurrentView('login');
     const switchToRegister = () => setCurrentView('register');
     const handleLogin = () => {
@@ -682,9 +733,13 @@ function App() {
         loadOperational();
         setCurrentView('main');
     };
-    const handleLogout = () => setCurrentView('register');
+    const handleLogout = () => {
+        setCurrentView('register');
+        cancelEdit();
+        cancelEditInventory();
+        cancelEditOperational();
+    };
 
-    // Form Handlers
     const handleProductChange = (e) => {
         const { name, value } = e.target;
         setProductForm(prevForm => ({
@@ -709,7 +764,6 @@ function App() {
         }));
     };
 
-    // Load data on component mount
     useEffect(() => {
         if (currentView === 'main') {
             loadProducts();
@@ -719,10 +773,7 @@ function App() {
     }, [currentView]);
 
     const calculateStats = (products, inventory, operational) => {
-        // Hitung total biaya operasional
         const totalOperationalCost = operational.reduce((sum, op) => sum + op.cost, 0);
-        
-        // Hitung estimasi pendapatan (total harga produk × 10) dikurangi biaya operasional
         const estimatedRevenue = products.reduce((sum, product) => sum + (product.price * 10), 0) - totalOperationalCost;
 
         setStats({
@@ -771,11 +822,36 @@ function App() {
                 calculateStats(newProducts, inventory, operational);
                 return newProducts;
             });
-            setProductForm({ name: '', description: '', price: '', category: 'Makanan Utama' });
+            setProductForm({ id: '', name: '', description: '', price: '', category: 'Makanan Utama' });
             alert('✅ Produk berhasil ditambahkan!');
         } catch (error) {
             console.error('Error adding product:', error);
             alert('❌ Gagal menambahkan produk');
+        }
+    };
+
+    const editProduct = async (e) => {
+        e.preventDefault();
+        if (!productForm.name || !productForm.price) {
+            alert('Nama produk dan harga harus diisi!');
+            return;
+        }
+        try {
+            setProducts(prev => {
+                const newProducts = prev.map(product => 
+                    product.id === productForm.id 
+                        ? { ...productForm, price: parseInt(productForm.price) }
+                        : product
+                );
+                calculateStats(newProducts, inventory, operational);
+                return newProducts;
+            });
+            setProductForm({ id: '', name: '', description: '', price: '', category: 'Makanan Utama' });
+            setIsEditing(false);
+            alert('✅ Produk berhasil diupdate!');
+        } catch (error) {
+            console.error('Error editing product:', error);
+            alert('❌ Gagal mengupdate produk');
         }
     };
 
@@ -793,6 +869,11 @@ function App() {
                 alert('❌ Gagal menghapus produk');
             }
         }
+    };
+
+    const cancelEdit = () => {
+        setProductForm({ id: '', name: '', description: '', price: '', category: 'Makanan Utama' });
+        setIsEditing(false);
     };
 
     const loadInventory = async () => {
@@ -846,6 +927,52 @@ function App() {
         }
     };
 
+    const editInventory = async (e) => {
+        e.preventDefault();
+        if (!inventoryForm.stock) {
+            alert('Jumlah stok harus diisi!');
+            return;
+        }
+        try {
+            setInventory(prev => {
+                const newInventory = prev.map(item => 
+                    item.product_id === parseInt(inventoryForm.product_id)
+                        ? { ...item, stock: parseInt(inventoryForm.stock), location: inventoryForm.location }
+                        : item
+                );
+                calculateStats(products, newInventory, operational);
+                return newInventory;
+            });
+            setInventoryForm({ product_id: '', stock: '', location: 'Dapur Utama' });
+            setIsEditingInventory(false);
+            alert('✅ Stok berhasil diupdate!');
+        } catch (error) {
+            console.error('Error editing inventory:', error);
+            alert('❌ Gagal mengupdate stok');
+        }
+    };
+
+    const deleteInventory = async (product_id) => {
+        if (window.confirm('Apakah Anda yakin ingin menghapus data stok ini?')) {
+            try {
+                setInventory(prev => {
+                    const newInventory = prev.filter(item => item.product_id !== product_id);
+                    calculateStats(products, newInventory, operational);
+                    return newInventory;
+                });
+                alert('✅ Data stok berhasil dihapus!');
+            } catch (error) {
+                console.error('Error deleting inventory:', error);
+                alert('❌ Gagal menghapus data stok');
+            }
+        }
+    };
+
+    const cancelEditInventory = () => {
+        setInventoryForm({ product_id: '', stock: '', location: 'Dapur Utama' });
+        setIsEditingInventory(false);
+    };
+
     const loadOperational = async () => {
         try {
             const response = await axios.get(`${OPERATIONAL_API}/operasional`);
@@ -882,11 +1009,36 @@ function App() {
                 calculateStats(products, inventory, newOperationals);
                 return newOperationals;
             });
-            setOperationalForm({ date: new Date().toISOString().split('T')[0], activity: '', description: '', cost: '' });
+            setOperationalForm({ id: '', date: new Date().toISOString().split('T')[0], activity: '', description: '', cost: '' });
             alert('✅ Aktivitas operasional berhasil ditambahkan!');
         } catch (error) {
             console.error('Error adding operational:', error);
             alert('❌ Gagal menambahkan aktivitas operasional');
+        }
+    };
+
+    const editOperational = async (e) => {
+        e.preventDefault();
+        if (!operationalForm.activity || !operationalForm.cost) {
+            alert('Aktivitas dan biaya harus diisi!');
+            return;
+        }
+        try {
+            setOperational(prev => {
+                const newOperationals = prev.map(op => 
+                    op.id === operationalForm.id
+                        ? { ...operationalForm, cost: parseInt(operationalForm.cost) }
+                        : op
+                );
+                calculateStats(products, inventory, newOperationals);
+                return newOperationals;
+            });
+            setOperationalForm({ id: '', date: new Date().toISOString().split('T')[0], activity: '', description: '', cost: '' });
+            setIsEditingOperational(false);
+            alert('✅ Aktivitas operasional berhasil diupdate!');
+        } catch (error) {
+            console.error('Error editing operational:', error);
+            alert('❌ Gagal mengupdate aktivitas operasional');
         }
     };
 
@@ -906,6 +1058,42 @@ function App() {
         }
     };
 
+    const cancelEditOperational = () => {
+        setOperationalForm({ id: '', date: new Date().toISOString().split('T')[0], activity: '', description: '', cost: '' });
+        setIsEditingOperational(false);
+    };
+
+    const handleSetEditing = (product) => {
+        setProductForm({
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            category: product.category
+        });
+        setIsEditing(true);
+    };
+
+    const handleSetEditingInventory = (item) => {
+        setInventoryForm({
+            product_id: item.product_id,
+            stock: item.stock,
+            location: item.location
+        });
+        setIsEditingInventory(true);
+    };
+
+    const handleSetEditingOperational = (op) => {
+        setOperationalForm({
+            id: op.id,
+            date: op.date,
+            activity: op.activity,
+            description: op.description,
+            cost: op.cost
+        });
+        setIsEditingOperational(true);
+    };
+
     const renderTabContent = () => {
         switch (activeTab) {
             case 'products':
@@ -915,7 +1103,11 @@ function App() {
                         productForm={productForm}
                         handleProductChange={handleProductChange}
                         addProduct={addProduct}
+                        editProduct={editProduct}
                         deleteProduct={deleteProduct}
+                        isEditing={isEditing}
+                        setIsEditing={handleSetEditing}
+                        cancelEdit={cancelEdit}
                     />
                 );
             case 'inventory':
@@ -926,6 +1118,11 @@ function App() {
                         inventoryForm={inventoryForm}
                         handleInventoryChange={handleInventoryChange}
                         updateStock={updateStock}
+                        editInventory={editInventory}
+                        deleteInventory={deleteInventory}
+                        isEditingInventory={isEditingInventory}
+                        setIsEditingInventory={handleSetEditingInventory}
+                        cancelEditInventory={cancelEditInventory}
                     />
                 );
             case 'operational':
@@ -935,7 +1132,11 @@ function App() {
                         operationalForm={operationalForm}
                         handleOperationalChange={handleOperationalChange}
                         addOperational={addOperational}
+                        editOperational={editOperational}
                         deleteOperational={deleteOperational}
+                        isEditingOperational={isEditingOperational}
+                        setIsEditingOperational={handleSetEditingOperational}
+                        cancelEditOperational={cancelEditOperational}
                     />
                 );
             case 'dashboard':
@@ -945,7 +1146,6 @@ function App() {
         }
     };
 
-    // Render berdasarkan current view
     if (currentView === 'register') {
         return <Register switchToLogin={switchToLogin} />;
     }
@@ -954,7 +1154,6 @@ function App() {
         return <Login switchToRegister={switchToRegister} onLogin={handleLogin} />;
     }
 
-    // Main Application
     return (
         <div className="App">
             <header className="header">
