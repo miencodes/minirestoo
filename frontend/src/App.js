@@ -6,6 +6,33 @@ const PRODUCT_API = 'http://localhost:3002/api';
 const INVENTORY_API = 'http://localhost:3001/api';
 const OPERATIONAL_API = 'http://localhost:3003/api';
 
+// --- DATA MANUAL (DUMMY) DIPINDAHKAN KE SINI AGAR BISA MENJADI DEFAULT ---
+const DUMMY_PRODUCTS = [
+    { id: 1, name: 'Nasi Goreng Spesial', description: 'Nasi goreng dengan ayam, udang, dan telur', price: 25000, category: 'Makanan Utama' },
+    { id: 2, name: 'Gado-gado', description: 'Salad sayuran dengan bumbu kacang', price: 18000, category: 'Makanan Utama' },
+    { id: 3, name: 'Nasi Ayam Betutu', description: 'Ayam panggang dengan bumbu khas bali', price: 35000, category: 'Makanan Utama' },
+    { id: 4, name: 'Ayam Bakar', description: 'Ayam bakar bumbu spesial', price: 32000, category: 'Makanan Utama' },
+    { id: 5, name: 'Sate Ayam', description: 'Sate ayam dengan bumbu kacang', price: 28000, category: 'Makanan Utama' },
+    { id: 6, name: 'Mie Goreng Spesial', description: 'Mie Goreng Spesial dengan ayam suir, telur, dan sosis', price: 12000, category: 'Makanan Utama' }
+];
+
+const DUMMY_INVENTORY = [
+    { product_id: 1, stock: 50, location: 'Dapur Utama' },
+    { product_id: 2, stock: 30, location: 'Dapur Dingin' },
+    { product_id: 3, stock: 100, location: 'Bar' },
+    { product_id: 4, stock: 25, location: 'Dapur Utama' },
+    { product_id: 5, stock: 40, location: 'Dapur Utama' },
+    { product_id: 6, stock: 80, location: 'Bar' }
+];
+
+const DUMMY_OPERATIONAL = [
+    { id: 1, date: '2024-01-15', activity: 'Beli Bahan Mentah', description: 'Pembelian sayuran dan daging segar', cost: 2500000 },
+    { id: 2, date: '2024-01-16', activity: 'Maintenance Peralatan', description: 'Servis kompor dan oven', cost: 500000 },
+    { id: 3, date: '2024-01-17', activity: 'Gaji Karyawan', description: 'Pembayaran gaji mingguan', cost: 3500000 },
+    { id: 4, date: '2024-01-18', activity: 'Beli Gas LPG', description: 'Pengisian gas untuk dapur', cost: 300000 },
+    { id: 5, date: '2024-01-19', activity: 'Beli Kemasan', description: 'Pembelian box dan plastik kemasan', cost: 450000 }
+];
+
 const formatRupiah = (number) => {
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
@@ -571,9 +598,18 @@ const OperationalManagement = ({ operational, operationalForm, handleOperational
     );
 };
 
-const Dashboard = ({ stats, products, operational }) => {
+const Dashboard = ({ stats, products, inventory, operational }) => {
     const totalOperationalCost = operational.reduce((sum, op) => sum + op.cost, 0);
-    const estimatedSales = products.reduce((sum, product) => sum + (product.price * 10), 0);
+    
+    // Hitung total stok dari semua inventory
+    const totalStock = inventory.reduce((sum, item) => sum + item.stock, 0);
+    
+    // Hitung estimasi penjualan berdasarkan stok yang tersedia
+    const estimatedSales = inventory.reduce((sum, item) => {
+        const product = products.find(p => p.id === item.product_id);
+        return product ? sum + (product.price * item.stock) : sum;
+    }, 0);
+    
     const estimatedRevenue = estimatedSales - totalOperationalCost;
 
     return (
@@ -586,7 +622,7 @@ const Dashboard = ({ stats, products, operational }) => {
                     <div className="financial-info">
                         <h4>Estimasi Penjualan</h4>
                         <p className="financial-amount">{formatRupiah(estimatedSales)}</p>
-                        <span>Total harga menu × 10 porsi</span>
+                        <span>Berdasarkan stok yang tersedia</span>
                     </div>
                 </div>
                 
@@ -613,13 +649,16 @@ const Dashboard = ({ stats, products, operational }) => {
                 <div className="stat-card">
                     <h3>Total Menu</h3>
                     <p className="stat-number">{stats.totalProducts}</p>
-                    <span className="stat-desc">Jumlah menu makanan & minuman</span>
+                    <span className="stat-desc">Jumlah menu</span>
                 </div>
                 <div className="stat-card">
-                    <h3>Stok Bahan</h3>
-                    <p className="stat-number">{stats.totalInventory}</p>
-                    <span className="stat-desc">Item bahan makanan tersedia</span>
+                    <h3>Total Stok</h3>
+                    <p className="stat-number">{totalStock}</p>
+                    <span className="stat-desc">Total porsi yang tersedia</span>
                 </div>
+                {/* Kartu "Item Stok" DIHAPUS sesuai permintaan 
+                   karena sudah ada total stok dan dianggap redundan 
+                */}
                 <div className="stat-card">
                     <h3>Aktivitas Operasional</h3>
                     <p className="stat-number">{stats.totalOperational}</p>
@@ -631,9 +670,9 @@ const Dashboard = ({ stats, products, operational }) => {
                 <h4>🧮 Detail Perhitungan Estimasi Pendapatan</h4>
                 <div className="calculation-steps">
                     <div className="calculation-step">
-                        <span className="step-label">Estimasi Penjualan:</span>
+                        <span className="step-label">Estimasi Penjualan Maksimal:</span>
                         <span className="step-value">{formatRupiah(estimatedSales)}</span>
-                        <span className="step-desc">(Total {products.length} menu × 10 porsi)</span>
+                        <span className="step-desc">(Berdasarkan stok yang tersedia)</span>
                     </div>
                     <div className="calculation-step">
                         <span className="step-label">Total Biaya Operasional:</span>
@@ -652,7 +691,7 @@ const Dashboard = ({ stats, products, operational }) => {
 
             <div className="dashboard-grid">
                 <div className="recent-activities">
-                    <h3>Biaya Operasional Terbaru</h3>
+                    <h3>📋 Biaya Operasional Terbaru</h3>
                     <div className="activity-list">
                         {operational.slice(0, 5).map(op => (
                             <div key={op.id} className="activity-item">
@@ -672,14 +711,30 @@ const Dashboard = ({ stats, products, operational }) => {
                 </div>
 
                 <div className="recent-activities">
-                    <h3>Menu Terpopuler</h3>
+                    <h3>🏆 Menu dengan Stok Terbanyak</h3>
                     <div className="activity-list">
-                        {products.slice(0, 4).map(product => (
-                            <div key={product.id} className="activity-item">
-                                <span>{product.name}</span>
-                                <span>{formatRupiah(product.price)}</span>
+                        {inventory
+                            .sort((a, b) => b.stock - a.stock)
+                            .slice(0, 5)
+                            .map(item => {
+                                const product = products.find(p => p.id === item.product_id);
+                                return product ? (
+                                    <div key={item.product_id} className="activity-item">
+                                        <div className="activity-info">
+                                            <strong>{product.name}</strong>
+                                            <span>{formatRupiah(product.price)}</span>
+                                        </div>
+                                        <span className="cost-badge" style={{background: '#28a745'}}>
+                                            {item.stock} porsi
+                                        </span>
+                                    </div>
+                                ) : null;
+                            })}
+                        {inventory.length === 0 && (
+                            <div className="activity-item">
+                                <span>Tidak ada data stok</span>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </div>
@@ -690,9 +745,12 @@ const Dashboard = ({ stats, products, operational }) => {
 function App() {
     const [currentView, setCurrentView] = useState('register');
     const [activeTab, setActiveTab] = useState('dashboard');
-    const [products, setProducts] = useState([]);
-    const [inventory, setInventory] = useState([]);
-    const [operational, setOperational] = useState([]);
+    
+    // PERBAIKAN: Initialize state dengan DUMMY data agar langsung muncul
+    const [products, setProducts] = useState(DUMMY_PRODUCTS);
+    const [inventory, setInventory] = useState(DUMMY_INVENTORY);
+    const [operational, setOperational] = useState(DUMMY_OPERATIONAL);
+    
     const [stats, setStats] = useState({
         totalProducts: 0,
         totalInventory: 0,
@@ -764,6 +822,12 @@ function App() {
         }));
     };
 
+    // PERBAIKAN: Gunakan useEffect ini untuk selalu menghitung stats ketika data berubah
+    // Ini menjamin Total Menu tidak 0 ketika data manual dimuat
+    useEffect(() => {
+        calculateStats(products, inventory, operational);
+    }, [products, inventory, operational]);
+
     useEffect(() => {
         if (currentView === 'main') {
             loadProducts();
@@ -772,14 +836,20 @@ function App() {
         }
     }, [currentView]);
 
-    const calculateStats = (products, inventory, operational) => {
-        const totalOperationalCost = operational.reduce((sum, op) => sum + op.cost, 0);
-        const estimatedRevenue = products.reduce((sum, product) => sum + (product.price * 10), 0) - totalOperationalCost;
+    const calculateStats = (currentProducts, currentInventory, currentOperational) => {
+        const totalOperationalCost = currentOperational.reduce((sum, op) => sum + op.cost, 0);
+        
+        const estimatedSales = currentInventory.reduce((sum, item) => {
+            const product = currentProducts.find(p => p.id === item.product_id);
+            return product ? sum + (product.price * item.stock) : sum;
+        }, 0);
+        
+        const estimatedRevenue = estimatedSales - totalOperationalCost;
 
         setStats({
-            totalProducts: products.length,
-            totalInventory: inventory.length,
-            totalOperational: operational.length,
+            totalProducts: currentProducts.length,
+            totalInventory: currentInventory.length,
+            totalOperational: currentOperational.length,
             totalOperationalCost: totalOperationalCost,
             totalRevenue: estimatedRevenue > 0 ? estimatedRevenue : 0
         });
@@ -788,18 +858,13 @@ function App() {
     const loadProducts = async () => {
         try {
             const response = await axios.get(`${PRODUCT_API}/products`);
-            setProducts(response.data);
-            calculateStats(response.data, inventory, operational);
+            if(response.data && response.data.length > 0) {
+                setProducts(response.data);
+            }
         } catch (error) {
-            console.error('Error loading products:', error);
-            const dummyProducts = [
-                { id: 1, name: 'Nasi Goreng Spesial', description: 'Nasi goreng dengan ayam, udang, dan telur', price: 25000, category: 'Makanan Utama' },
-                { id: 2, name: 'Gado-gado', description: 'Salad sayuran dengan bumbu kacang', price: 18000, category: 'Makanan Utama' },
-                { id: 3, name: 'Es Teh Manis', description: 'Es teh dengan gula aren', price: 8000, category: 'Minuman' },
-                { id: 4, name: 'Ayam Bakar', description: 'Ayam bakar bumbu spesial', price: 32000, category: 'Makanan Utama' }
-            ];
-            setProducts(dummyProducts);
-            calculateStats(dummyProducts, inventory, operational);
+            console.error('Error loading products (using dummy data):', error);
+            // Fallback is already handled by initial state, but we can enforce it here if needed
+            // setProducts(DUMMY_PRODUCTS); 
         }
     };
 
@@ -817,11 +882,7 @@ function App() {
                 price: parseInt(productForm.price),
                 category: productForm.category
             };
-            setProducts(prev => {
-                const newProducts = [...prev, newProduct];
-                calculateStats(newProducts, inventory, operational);
-                return newProducts;
-            });
+            setProducts(prev => [...prev, newProduct]);
             setProductForm({ id: '', name: '', description: '', price: '', category: 'Makanan Utama' });
             alert('✅ Produk berhasil ditambahkan!');
         } catch (error) {
@@ -837,15 +898,11 @@ function App() {
             return;
         }
         try {
-            setProducts(prev => {
-                const newProducts = prev.map(product => 
-                    product.id === productForm.id 
-                        ? { ...productForm, price: parseInt(productForm.price) }
-                        : product
-                );
-                calculateStats(newProducts, inventory, operational);
-                return newProducts;
-            });
+            setProducts(prev => prev.map(product => 
+                product.id === productForm.id 
+                    ? { ...productForm, price: parseInt(productForm.price) }
+                    : product
+            ));
             setProductForm({ id: '', name: '', description: '', price: '', category: 'Makanan Utama' });
             setIsEditing(false);
             alert('✅ Produk berhasil diupdate!');
@@ -858,11 +915,7 @@ function App() {
     const deleteProduct = async (id) => {
         if (window.confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
             try {
-                setProducts(prev => {
-                    const newProducts = prev.filter(product => product.id !== id);
-                    calculateStats(newProducts, inventory, operational);
-                    return newProducts;
-                });
+                setProducts(prev => prev.filter(product => product.id !== id));
                 alert('✅ Produk berhasil dihapus!');
             } catch (error) {
                 console.error('Error deleting product:', error);
@@ -879,18 +932,11 @@ function App() {
     const loadInventory = async () => {
         try {
             const response = await axios.get(`${INVENTORY_API}/inventory`);
-            setInventory(response.data);
-            calculateStats(products, response.data, operational);
+            if(response.data && response.data.length > 0) {
+                setInventory(response.data);
+            }
         } catch (error) {
-            console.error('Error loading inventory:', error);
-            const dummyInventory = [
-                { product_id: 1, stock: 50, location: 'Dapur Utama' },
-                { product_id: 2, stock: 30, location: 'Dapur Dingin' },
-                { product_id: 3, stock: 100, location: 'Bar' },
-                { product_id: 4, stock: 25, location: 'Dapur Utama' }
-            ];
-            setInventory(dummyInventory);
-            calculateStats(products, dummyInventory, operational);
+            console.error('Error loading inventory (using dummy data):', error);
         }
     };
 
@@ -908,16 +954,13 @@ function App() {
             };
             setInventory(prev => {
                 const existingIndex = prev.findIndex(item => item.product_id === newInventoryItem.product_id);
-                let newInventory;
                 if (existingIndex >= 0) {
-                    newInventory = prev.map((item, index) => 
+                    return prev.map((item, index) => 
                         index === existingIndex ? newInventoryItem : item
                     );
                 } else {
-                    newInventory = [...prev, newInventoryItem];
+                    return [...prev, newInventoryItem];
                 }
-                calculateStats(products, newInventory, operational);
-                return newInventory;
             });
             setInventoryForm({ product_id: '', stock: '', location: 'Dapur Utama' });
             alert('✅ Stok berhasil diperbarui!');
@@ -934,15 +977,11 @@ function App() {
             return;
         }
         try {
-            setInventory(prev => {
-                const newInventory = prev.map(item => 
-                    item.product_id === parseInt(inventoryForm.product_id)
-                        ? { ...item, stock: parseInt(inventoryForm.stock), location: inventoryForm.location }
-                        : item
-                );
-                calculateStats(products, newInventory, operational);
-                return newInventory;
-            });
+            setInventory(prev => prev.map(item => 
+                item.product_id === parseInt(inventoryForm.product_id)
+                    ? { ...item, stock: parseInt(inventoryForm.stock), location: inventoryForm.location }
+                    : item
+            ));
             setInventoryForm({ product_id: '', stock: '', location: 'Dapur Utama' });
             setIsEditingInventory(false);
             alert('✅ Stok berhasil diupdate!');
@@ -955,11 +994,7 @@ function App() {
     const deleteInventory = async (product_id) => {
         if (window.confirm('Apakah Anda yakin ingin menghapus data stok ini?')) {
             try {
-                setInventory(prev => {
-                    const newInventory = prev.filter(item => item.product_id !== product_id);
-                    calculateStats(products, newInventory, operational);
-                    return newInventory;
-                });
+                setInventory(prev => prev.filter(item => item.product_id !== product_id));
                 alert('✅ Data stok berhasil dihapus!');
             } catch (error) {
                 console.error('Error deleting inventory:', error);
@@ -976,17 +1011,11 @@ function App() {
     const loadOperational = async () => {
         try {
             const response = await axios.get(`${OPERATIONAL_API}/operasional`);
-            setOperational(response.data);
-            calculateStats(products, inventory, response.data);
+            if(response.data && response.data.length > 0) {
+                setOperational(response.data);
+            }
         } catch (error) {
-            console.error('Error loading operational:', error);
-            const dummyOperational = [
-                { id: 1, date: '2024-01-15', activity: 'Beli Bahan Mentah', description: 'Pembelian sayuran dan daging segar', cost: 2500000 },
-                { id: 2, date: '2024-01-16', activity: 'Maintenance Peralatan', description: 'Servis kompor dan oven', cost: 500000 },
-                { id: 3, date: '2024-01-17', activity: 'Gaji Karyawan', description: 'Pembayaran gaji mingguan', cost: 3500000 }
-            ];
-            setOperational(dummyOperational);
-            calculateStats(products, inventory, dummyOperational);
+            console.error('Error loading operational (using dummy data):', error);
         }
     };
 
@@ -1004,11 +1033,7 @@ function App() {
                 description: operationalForm.description,
                 cost: parseInt(operationalForm.cost)
             };
-            setOperational(prev => {
-                const newOperationals = [...prev, newOperational];
-                calculateStats(products, inventory, newOperationals);
-                return newOperationals;
-            });
+            setOperational(prev => [...prev, newOperational]);
             setOperationalForm({ id: '', date: new Date().toISOString().split('T')[0], activity: '', description: '', cost: '' });
             alert('✅ Aktivitas operasional berhasil ditambahkan!');
         } catch (error) {
@@ -1024,15 +1049,11 @@ function App() {
             return;
         }
         try {
-            setOperational(prev => {
-                const newOperationals = prev.map(op => 
-                    op.id === operationalForm.id
-                        ? { ...operationalForm, cost: parseInt(operationalForm.cost) }
-                        : op
-                );
-                calculateStats(products, inventory, newOperationals);
-                return newOperationals;
-            });
+            setOperational(prev => prev.map(op => 
+                op.id === operationalForm.id
+                    ? { ...operationalForm, cost: parseInt(operationalForm.cost) }
+                    : op
+            ));
             setOperationalForm({ id: '', date: new Date().toISOString().split('T')[0], activity: '', description: '', cost: '' });
             setIsEditingOperational(false);
             alert('✅ Aktivitas operasional berhasil diupdate!');
@@ -1045,11 +1066,7 @@ function App() {
     const deleteOperational = async (id) => {
         if (window.confirm('Apakah Anda yakin ingin menghapus aktivitas operasional ini?')) {
             try {
-                setOperational(prev => {
-                    const newOperationals = prev.filter(op => op.id !== id);
-                    calculateStats(products, inventory, newOperationals);
-                    return newOperationals;
-                });
+                setOperational(prev => prev.filter(op => op.id !== id));
                 alert('✅ Aktivitas operasional berhasil dihapus!');
             } catch (error) {
                 console.error('Error deleting operational:', error);
@@ -1140,9 +1157,9 @@ function App() {
                     />
                 );
             case 'dashboard':
-                return <Dashboard stats={stats} products={products} operational={operational} />;
+                return <Dashboard stats={stats} products={products} inventory={inventory} operational={operational} />;
             default:
-                return <Dashboard stats={stats} products={products} operational={operational} />;
+                return <Dashboard stats={stats} products={products} inventory={inventory} operational={operational} />;
         }
     };
 
