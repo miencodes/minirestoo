@@ -332,7 +332,7 @@ const Dashboard = ({ stats, products, inventory, operational }) => {
             <div className="content-header">
                 <div className="header-left">
                     <h1>Dashboard Overview</h1>
-                    <p>Welcome back! Here's what's happening with your restaurant today.</p>
+                    <p>Welcome back admin! Here's what's happening with your restaurant today.</p>
                 </div>
                 <div className="header-right">
                     <div className="date-range">
