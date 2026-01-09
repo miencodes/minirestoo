@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
@@ -351,4 +350,3 @@ Anda adalah "otak" yang menghubungkan semuanya. Anda **tidak membuat banyak endp
 Ini adalah panduan lengkapnya. Semua sudah ditentukan. Sekarang tim bisa fokus bekerja pada service masing-masing dengan acuan yang sama. Selamat bekerja\! 🚀
 > Dokumentasi ini akan terus diperbarui seiring perkembangan proyek, jadi kalo kalian mau jelasin sesuatu, taruh sini aja ya :D
 >> Selamat berkontribusi & happy coding, mentemen :D! 🎉
->>>>>>> 4a777af38f40eb5d8e8078316ef1544af7c1c7f0
