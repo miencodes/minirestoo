@@ -1,35 +1,46 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+data:
+
+  REACT_APP_API_URL: "http://backend-service:5000"
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
-  namespace: minirestoo
+  name: frontend-deploy
 spec:
-  replicas: 1
+  replicas: 2         
   selector:
     matchLabels:
-      app: frontend
+      app: frontend   
   template:
     metadata:
       labels:
-        app: frontend
+        app: frontend  
     spec:
       containers:
-        - name: frontend
-          image: frontend:dev
-          ports:
-            - containerPort: 80
-
+      - name: frontend-app
+        image: minirestoo-frontend:latest 
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: frontend-config     
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend
-  namespace: minirestoo
+  name: frontend-service
 spec:
-  type: NodePort
+  type: NodePort 
   selector:
     app: frontend
   ports:
-    - port: 80
-      targetPort: 80
-      nodePort: 30000
+    - port: 80          
+      targetPort: 80  
+      nodePort: 30001   
