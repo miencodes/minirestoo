@@ -56,6 +56,14 @@ const initializeDatabase = async () => {
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        total_price NUMERIC(10, 2) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     console.log('✅ All tables are ready.');
   } catch (err) {
     console.error('Error initializing database tables:', err.stack);
@@ -170,16 +178,91 @@ app.post('/api/products/:id/recipes', async (req, res) => {
   }
 });
 
-app.post('/api/temp/materials', async (req, res) => {
+app.get('/api/inventory/materials', async (req, res) => {
   try {
-    const { name, unit } = req.body;
+    const { rows } = await pool.query('SELECT * FROM raw_materials ORDER BY id ASC');
+    res.status(200).json(rows);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/inventory/materials', async (req, res) => {
+  try {
+    const { name, unit, quantity_on_hand } = req.body;
+    const qty = quantity_on_hand || 0;
+    
     const { rows } = await pool.query(
-      'INSERT INTO raw_materials (name, unit) VALUES ($1, $2) RETURNING *',
-      [name, unit]
+      'INSERT INTO raw_materials (name, unit, quantity_on_hand) VALUES ($1, $2, $3) RETURNING *',
+      [name, unit, qty]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/orders', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
+
+app.post('/api/orders', async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const { items } = req.body;
+    
+    let totalPrice = 0;
+    for (const item of items) {
+      const productRes = await client.query('SELECT price FROM products WHERE id = $1', [item.product_id]);
+      if (productRes.rows.length > 0) {
+        totalPrice += parseFloat(productRes.rows[0].price) * item.quantity;
+      }
+    }
+
+    await client.query('BEGIN');
+
+    const orderRes = await client.query(
+      'INSERT INTO orders (total_price) VALUES ($1) RETURNING *',
+      [totalPrice]
+    );
+    const orderId = orderRes.rows[0].id;
+
+    for (const item of items) {
+      const recipeRes = await client.query(
+        'SELECT material_id, quantity_needed FROM recipes WHERE product_id = $1',
+        [item.product_id]
+      );
+
+      for (const recipe of recipeRes.rows) {
+        const totalDeduct = recipe.quantity_needed * item.quantity;
+        
+        await client.query(
+          `UPDATE raw_materials 
+           SET quantity_on_hand = quantity_on_hand - $1 
+           WHERE id = $2`,
+          [totalDeduct, recipe.material_id]
+        );
+        
+        console.log(`📉 Mengurangi Material ID ${recipe.material_id} sebanyak ${totalDeduct}`);
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json(orderRes.rows[0]);
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ message: 'Gagal memproses pesanan: ' + err.message });
+  } finally {
+    client.release();
   }
 });
 
