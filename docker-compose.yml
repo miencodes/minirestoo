@@ -1,5 +1,4 @@
 services:
-  # --- DATABASE ---
   db:
     image: postgres:14-alpine
     container_name: minirestoo_db
@@ -15,14 +14,13 @@ services:
     networks:
       - minirestoo_network
 
-  # --- API GATEWAY NGINX ---
   nginx:
     build:
       context: ./nginx
     container_name: api_gateway
     restart: unless-stopped
     ports:
-      - "80:80" # Ini ya, satu-satunya pintu masuk ke aplikasi kita
+      - "80:80"
     networks:
       - minirestoo_network
     depends_on:
@@ -30,7 +28,6 @@ services:
       - inventory-management
       - operasional
 
-  # --- SERVICE PRODUCT ---
   product-management:
     build:
       context: ./product-management
@@ -44,7 +41,6 @@ services:
     depends_on:
       - db
 
-  # --- SERVICE INVENTORY ---
   inventory-management:
     build:
       context: ./inventory-management
@@ -58,7 +54,6 @@ services:
     depends_on:
       - db
 
-  # --- SERVICE OPERASIONAL ---
   operasional:
     build:
       context: ./operasional
@@ -76,20 +71,18 @@ services:
       - product-management
       - inventory-management
 
-# --- FRONTEND ---
   frontend:
     build:
       context: ./frontend
     container_name: frontend_app
     restart: unless-stopped
     ports:
-      - "3000:80" # port 3000 tuh di laptop kita
+      - "3000:80"
     depends_on:
-      - nginx # frontend baru boleh nyala kalo nginx udah siap
+      - nginx
     networks:
       - minirestoo_network
 
-# --- JARINGAN & VOLUME ---
 networks:
   minirestoo_network:
     driver: bridge

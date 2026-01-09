@@ -1,17 +1,14 @@
 const express = require('express');
 const { Pool } = require('pg');
-const cors = require('cors'); // <--- 1. IMPORT CORS
+const cors = require('cors');
 
-// --- KONFIGURASI ---
 const PORT = process.env.PORT || 3002;
 const HOST = '0.0.0.0';
 
-// --- KONEKSI DATABASE ---
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL
 });
 
-// Fungsi biar service sabar nunggu DB
 const waitForDatabase = async () => {
   let retries = 5;
   while (retries > 0) {
@@ -20,7 +17,7 @@ const waitForDatabase = async () => {
       console.log('✅ (Product) Database connection successful.');
       return;
     } catch (err) {
-      console.log(`⏳ (Product) DB connection failed. Retrying... (${retries} left)`);
+      console.log(`⏳ (Product) GAGAL KONEK: ${err.message}. Retrying... (${retries} left)`);
       retries--;
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
@@ -28,7 +25,6 @@ const waitForDatabase = async () => {
   throw new Error('Database connection failed after multiple attempts.');
 };
 
-// Fungsi Inisialisasi Tabel
 const initializeDatabase = async () => {
   const client = await pool.connect();
   try {
@@ -68,20 +64,15 @@ const initializeDatabase = async () => {
   }
 };
 
-// --- APLIKASI EXPRESS ---
 const app = express();
 
-// --- 2. PASANG MIDDLEWARE CORS DI SINI ---
 app.use(cors()); 
 app.use(express.json());
-
-// --- ROUTES ---
 
 app.get('/', (req, res) => {
   res.json({ service: 'product-management', status: 'ok' });
 });
 
-// GET Semua Produk
 app.get('/api/products', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM products ORDER BY id ASC');
@@ -92,7 +83,6 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// POST Produk Baru
 app.post('/api/products', async (req, res) => {
   try {
     const { name, price, description } = req.body;
@@ -110,7 +100,6 @@ app.post('/api/products', async (req, res) => {
   }
 });
 
-// GET Detail Produk + Resep
 app.get('/api/products/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -157,7 +146,6 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
-// POST Resep
 app.post('/api/products/:id/recipes', async (req, res) => {
   const { id: product_id } = req.params;
   const { material_id, quantity_needed } = req.body;
@@ -182,7 +170,6 @@ app.post('/api/products/:id/recipes', async (req, res) => {
   }
 });
 
-// POST Bahan Baku (Temp)
 app.post('/api/temp/materials', async (req, res) => {
   try {
     const { name, unit } = req.body;
@@ -196,7 +183,6 @@ app.post('/api/temp/materials', async (req, res) => {
   }
 });
 
-// PUT Update Produk
 app.put('/api/products/:id', async (req, res) => {
   const { id } = req.params;
   const { name, price, description } = req.body;
@@ -223,8 +209,6 @@ app.put('/api/products/:id', async (req, res) => {
   }
 });
 
-// --- 3. DELETE ROUTE (YANG SUDAH DIPERBAIKI) ---
-// (Route delete yang lama sudah dihapus biar gak bentrok)
 app.delete('/api/products/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -237,12 +221,10 @@ app.delete('/api/products/:id', async (req, res) => {
     res.json({ message: 'Menu berhasil dihapus', deletedItem: result.rows[0] });
   } catch (err) {
     console.error(err);
-    // Error handling khusus kalau menu ini sudah pernah dipesan
     res.status(500).json({ error: 'Gagal menghapus (Mungkin menu ini sudah ada di riwayat pesanan)' });
   }
 });
 
-// --- START SERVER ---
 app.listen(PORT, HOST, async () => {
   try {
     await waitForDatabase(); 
